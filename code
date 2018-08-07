@@ -1,0 +1,107 @@
+import matplotlib.pyplot as plt
+import matplotlib
+import mplleaflet
+import pandas as pd
+import numpy as np
+from datetime import datetime
+import matplotlib.dates as mdates
+from matplotlib.dates import MonthLocator, DateFormatter
+
+def line():
+    df = pd.read_csv('data/C2A2_data/BinnedCsvs_d400/921a697d63e17c1cb86364faf0d309c7fe078fabf6f3e24be2cefa47.csv')
+    df = df.sort_values('Date')
+    df['Element'] = df['Element'].str.lstrip('T')
+    df = df[~df['Date'].str.endswith('02-29')]
+    mm = pd.DataFrame(df.groupby(['Date'])['Data_Value'].agg(['min', 'max']))
+    mm = mm.reset_index()
+    mm = mm[~(mm['Date'].str.startswith('2015'))]
+    mm['Date'] = mm['Date'].str[5:]
+    mm_2 = pd.DataFrame(mm.groupby(['Date'])['min'].min())
+    mm_2['max'] = mm.groupby(['Date'])['max'].max()
+    mm_2 = mm_2.reset_index()
+    mm_2['Date'] = '2015-' + mm_2['Date']
+    mm_2['Date'] = pd.to_datetime(mm_2['Date'])
+    mm_2.set_index(mm_2['Date'], inplace=True)
+    
+    return mm_2
+
+#line()
+
+def scatter():
+    df = pd.read_csv('data/C2A2_data/BinnedCsvs_d400/921a697d63e17c1cb86364faf0d309c7fe078fabf6f3e24be2cefa47.csv')
+    df = df.sort_values('Date')
+    df['Element'] = df['Element'].str.lstrip('T')
+    df = df[~df['Date'].str.endswith('02-29')]
+    mm = pd.DataFrame(df.groupby(['Date'])['Data_Value'].agg(['min', 'max']))
+    mm = mm.reset_index()
+    mm = mm[(mm['Date'].str.startswith('2015'))]
+    mm['Date'] = pd.to_datetime(mm['Date'])
+    
+    return mm
+
+
+#scatter()
+
+def extreme_max():
+    x = line()
+    y = scatter()
+    z = pd.merge(x,y, how = 'outer', on = 'Date')
+    ex = z[(z['max_y'] > z['max_x'])]
+    ex = ex.drop(labels = ['min_x', 'min_y'], axis=1)
+    ex.set_index(ex['Date'], inplace = True)
+    
+    return ex
+
+#extreme_max()
+
+def extreme_min():
+    x = line()
+    y = scatter()
+    z = pd.merge(x,y, how = 'outer', on = 'Date')
+    ex = z[(z['min_y'] < z['min_x'])]
+    ex = ex.drop(labels = ['max_x', 'max_y'], axis=1)
+    ex.set_index(ex['Date'], inplace = True)
+    
+    return ex
+
+#extreme_min()
+
+mm = line()
+scat_max = extreme_max()
+scat_min = extreme_min()
+months = mdates.MonthLocator()
+
+x =  mm.index
+y1 = mm['min']
+y2 = mm['max']
+plt.plot( x, y1, color = 'blue', linestyle = 'solid')
+plt.plot( x, y2, color = 'red', linestyle = 'solid')
+plt.xlabel('Month')
+plt.ylabel('Tempurature (tenths of degrees C)')
+plt.title('Northern Virginia 2015 Temperature Extremes')
+plt.tick_params(bottom = 'off', left = 'off')
+plt.gca().fill_between(mm.index, y1, y2, color = 'gray', alpha = 0.25)
+
+
+locator = mdates.MonthLocator()  
+fmt = mdates.DateFormatter('%b')
+ax = plt.gca().xaxis
+ax.set_major_locator(locator)
+ax.set_major_formatter(fmt)
+
+
+a1 = scat_min.index
+a2 = scat_max.index
+b1 = scat_min['min_y']
+b2 = scat_max['max_y']
+plt.scatter(a1, b1, color = 'orange', s=10)
+plt.scatter(a2, b2, color = 'green', s=10)
+
+plt.legend(loc = 8)
+L=plt.legend()
+L.get_texts()[0].set_text('10-year minimum')
+L.get_texts()[1].set_text('10-year maximum')
+L.get_texts()[2].set_text('2015 daily minimum')
+L.get_texts()[3].set_text('2015 daily maximum')
+
+plt.show()
