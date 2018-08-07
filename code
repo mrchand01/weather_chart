@@ -104,4 +104,7 @@ L.get_texts()[1].set_text('10-year maximum')
 L.get_texts()[2].set_text('2015 daily minimum')
 L.get_texts()[3].set_text('2015 daily maximum')
 
+fig = matplotlib.pyplot.gcf()
+fig.set_size_inches(15.5, 8.5)
+
 plt.show()
